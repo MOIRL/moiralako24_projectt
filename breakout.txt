@@ -1,0 +1,249 @@
+
+import turtle
+import random
+
+# Set up the screen
+screen = turtle.Screen()
+screen.colormode(255)
+screen.bgcolor("black")
+
+# Ball variables
+ball_size = 10.0
+ball_speed = 5
+ 
+# Boundary variables
+box_size = 400.0
+boundary = (box_size / 2.0) - ball_size
+
+# Paddle variables
+paddle_speed = 30
+paddle_width = box_size / 6.0
+paddle_thickness = paddle_width / 10.0
+
+# For turtle mode
+funny = False
+
+#Drawing the box
+box_drawer = turtle.Turtle()
+box_drawer.penup()
+box_drawer.speed(0)
+box_drawer.goto(-box_size / 2.0, -box_size / 2.0)
+box_drawer.pendown()
+box_drawer.color("red")
+for i in range(4):
+	box_drawer.forward(box_size)
+	box_drawer.left(90)
+box_drawer.ht()
+
+################################################################
+############################ Paddle ############################
+################################################################
+
+#Making the paddle
+paddle = turtle.Turtle()
+paddle.color("slate blue")
+paddle.shape("square")
+paddle.shapesize(paddle_thickness/20.0, paddle_width / 20.0)
+
+paddle.penup()
+paddle.speed(0)
+paddle.goto(0,-boundary + 20)
+
+#Paddle goes right when key pressed, only if within boundaries
+def paddle_right():
+	if (paddle.xcor() + paddle_width / 2.0) < boundary:
+		paddle.forward(paddle_speed)
+
+#Paddle goes left when key pressed, only if within boundaries
+def paddle_left():
+	if (paddle.xcor() - paddle_width / 2.0) > -boundary:
+		paddle.backward(paddle_speed)
+
+screen.onkey(paddle_right, "Right")
+screen.onkey(paddle_left, "Left")
+
+################################################################
+############################ Bricks ############################
+################################################################
+
+# Brick variables
+num_bricks = 10
+gap_size = 10.0
+brick_width = (box_size - (num_bricks + 1)*gap_size) / num_bricks
+brick_thickness = brick_width / 2.0
+
+
+def make_brick_row(color, y):
+	row = []
+	xBrick = (- box_size / 2.0) + gap_size + (brick_width / 2.0)
+	for i in range(num_bricks):
+		brick = turtle.Turtle()
+		brick.speed(0)
+		brick.shape("square")
+		brick.shapesize(brick_thickness / 20.0, brick_width/20.0)
+		brick.color(color)
+		brick.penup()
+		brick.goto(xBrick,y)
+		row.append(brick)
+		xBrick = xBrick + brick_width + gap_size
+	return row
+
+
+y_brick = (box_size / 2.0) - gap_size - (brick_thickness / 2.0)
+row1 = make_brick_row("deep pink", y_brick)
+row2 = make_brick_row("purple", y_brick - ((brick_thickness) + gap_size))
+row3 = make_brick_row("navy", y_brick - 2*((brick_thickness) + gap_size))
+row4 = make_brick_row("light cyan", y_brick - 3*((brick_thickness) + gap_size))
+
+################################################################
+############################ Ball ##############################
+################################################################
+
+#Making the ball
+ball = turtle.Turtle()
+ball.speed(0)
+ball.color("white")
+ball.shape("circle")
+ball.penup()
+ball.goto(0, paddle.ycor() + (paddle_thickness / 2.0) + ball_size)
+
+# Setting the angle of the ball
+heading = random.randint(10,170)
+ball.setheading(heading)
+
+
+#Checks for wall collision and changes direction
+def bounce_wall():
+	if ball.xcor() > boundary or ball.xcor() < -boundary:
+		#For corners just turn around
+		if ball.ycor() > boundary:
+			ball.left(180)
+		#For side walls switch angle (always the same geometry)
+		else:
+			ball.setheading(180 - ball.heading())
+	#For top/bottom walls switch angle (always the same geometry)
+	elif ball.ycor() > boundary:
+		ball.setheading(360 - ball.heading())
+
+
+#Checks for paddle collision and changes direction
+def bounce_paddle():
+	if ball.ycor() - ball_size < paddle.ycor() + (paddle_thickness / 2.0) and 180 < ball.heading():
+		if ball.xcor() + ball_size > paddle.xcor() - (paddle_width / 2.0):
+			if ball.xcor() - ball_size < paddle.xcor() + (paddle_width / 2.0):
+				ball.setheading(360 - ball.heading())
+
+
+def bounce_brick_row(row):
+		for brick in row:
+			if ball.ycor() + ball_size > brick.ycor() - (brick_thickness / 2.0):
+				if ball.ycor() - ball_size < brick.ycor() + (brick_thickness / 2.0):
+					if ball.xcor() + ball_size > brick.xcor() - (brick_width / 2.0):
+						if ball.xcor() - ball_size < brick.xcor() + (brick_width / 2.0):
+							if brick.isvisible():
+								brick.ht()
+								ball.setheading(360 - ball.heading())
+							break
+
+def bounce_bricks():
+	bounce_brick_row(row1)
+	bounce_brick_row(row2)
+	bounce_brick_row(row3)
+	bounce_brick_row(row4)
+
+################################################################
+####################### Turtle mode ############################
+################################################################
+
+def turtleMode():
+	for brick in row1:
+		brick.shape("turtle")
+	for brick in row2:
+		brick.shape("turtle")
+	for brick in row3:
+		brick.shape("turtle")
+	for brick in row4:
+		brick.shape("turtle")
+	paddle.shape("turtle")
+	ball.shape("turtle")
+	global funny
+	funny = True
+
+screen.onkey(turtleMode, "t")
+
+################################################################
+####################### Gameplay ###############################
+################################################################
+
+
+def bricks_gone_row(row):
+	for brick in row:
+		if brick.isvisible():
+			return False
+	return True
+
+
+def bricks_gone():
+	if bricks_gone_row(row1) and bricks_gone_row(row2) and bricks_gone_row(row3) and bricks_gone_row(row4):
+		return True
+	return False
+
+def startGame():
+	lose = False
+
+	# For turtle mode
+	counter = 0
+
+	#Make the ball move continuously
+	while True:
+		ball.forward(ball_speed)
+		if ball.ycor() < -boundary:
+			ball.ht()
+			lose = True
+			break
+
+		bounce_wall()
+		bounce_paddle()
+		bounce_bricks()
+		
+		if bricks_gone():
+			break
+
+		##### For turtle mode #####
+		# Funny animation that runs when turtle mode is turned on
+		counter+=1
+		if funny and counter > 300:
+			paddle.shapesize(paddle_width/20.0,paddle_width/20.0)
+			for i in range(6):
+				for brick in row1:
+					brick.speed(0)
+					brick.left(30)
+			for i in range(6):
+				for brick in row2:
+					brick.speed(0)
+					brick.left(30)
+			for i in range(6):
+				for brick in row3:
+					brick.speed(0)
+					brick.left(30)
+			for i in range(6):
+				for brick in row4:
+					brick.speed(0)
+					brick.left(30)
+			counter = 0
+		##########################
+	
+
+	writer_turtle = turtle.Turtle()
+	writer_turtle.color("white")
+	writer_turtle.ht()
+	if lose:
+		writer_turtle.write("YOU LOSE!", font=("Arial", 16, "bold"))
+	else:
+		writer_turtle.write("YOU WIN!", font=("Arial", 16, "bold"))
+
+screen.onkey(startGame, "space")
+screen.listen()
+
+# Closes the game window when you click the screen
+screen.exitonclick()
